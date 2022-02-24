@@ -186,8 +186,11 @@ contract Treasury is ContractGuard {
             uint256 _bondSupply = IERC20(light).totalSupply();
             if (_bondMaxSupply > _bondSupply) {
                 uint256 _maxMintableBond = _bondMaxSupply.sub(_bondSupply);
-                uint256 _maxBurnableDark = _maxMintableBond.mul(_darkPrice).div(1e18);
-                _burnableDarkLeft = Math.min(epochSupplyContractionLeft, _maxBurnableDark);
+                uint256 _rate = getBondDiscountRate();
+                if (_rate > 0) {
+                    uint256 _maxBurnableDark = _maxMintableBond.mul(1e18).div(_rate);
+                    _burnableDarkLeft = Math.min(epochSupplyContractionLeft, _maxBurnableDark);
+                }
             }
         }
     }

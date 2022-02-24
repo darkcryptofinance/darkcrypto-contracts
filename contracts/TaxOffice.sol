@@ -3,13 +3,15 @@
 pragma solidity 0.6.12;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "./owner/Operator.sol";
 import "./interfaces/ITaxable.sol";
 import "./interfaces/IUniswapV2Router.sol";
-import "./interfaces/IERC20.sol";
+
 
 contract TaxOffice is Operator {
     using SafeMath for uint256;
+    using SafeERC20 for IERC20;
 
     address public dark;
     address public uniRouter;
@@ -191,7 +193,7 @@ contract TaxOffice is Operator {
 
     function _approveTokenIfNeeded(address _token, address _router) private {
         if (IERC20(_token).allowance(address(this), _router) == 0) {
-            IERC20(_token).approve(_router, type(uint256).max);
+            IERC20(_token).safeApprove(_router, type(uint256).max);
         }
     }
 }

@@ -4,11 +4,13 @@ pragma solidity 0.6.12;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20Burnable.sol";
+import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 
 import "../owner/Operator.sol";
 
 contract DarkCryptoShare is ERC20Burnable, Operator {
     using SafeMath for uint256;
+    using SafeERC20 for IERC20;
 
     // TOTAL MAX SUPPLY = 100.000 SKY
     uint256 public constant FARMING_POOL_REWARD_ALLOCATION = 70000 ether;
@@ -128,6 +130,6 @@ contract DarkCryptoShare is ERC20Burnable, Operator {
         uint256 _amount,
         address _to
     ) external onlyOperator {
-        _token.transfer(_to, _amount);
+        _token.safeTransfer(_to, _amount);
     }
 }

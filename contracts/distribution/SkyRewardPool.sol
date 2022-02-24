@@ -5,10 +5,11 @@ pragma solidity 0.6.12;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 // Note that this pool has no minter key of SKY (rewards).
 // Instead, the governance will call SKY distributeReward method and send reward to this pool at the beginning.
-contract SkyRewardPool {
+contract SkyRewardPool is ReentrancyGuard {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
@@ -87,9 +88,7 @@ contract SkyRewardPool {
         uint256 _lastRewardTime
     ) public onlyOperator {
         checkPoolDuplicate(_token);
-        if (_withUpdate) {
-            massUpdatePools();
-        }
+        massUpdatePools();
         if (block.timestamp < poolStartTime) {
             // chef is sleeping
             if (_lastRewardTime == 0) {
@@ -192,7 +191,7 @@ contract SkyRewardPool {
     }
 
     // Deposit LP tokens.
-    function deposit(uint256 _pid, uint256 _amount) public {
+    function deposit(uint256 _pid, uint256 _amount) nonReentrant public {
         address _sender = msg.sender;
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][_sender];
@@ -204,16 +203,21 @@ contract SkyRewardPool {
                 emit RewardPaid(_sender, _pending);
             }
         }
+        uint256 depositedAmount = _amount;
         if (_amount > 0) {
+            uint256 beforeBalance = pool.token.balanceOf(address(this));
             pool.token.safeTransferFrom(_sender, address(this), _amount);
-            user.amount = user.amount.add(_amount);
+            uint256 afterBalance = pool.token.balanceOf(address(this));
+            require(afterBalance > beforeBalance, "invalid deposit");
+            depositedAmount = afterBalance.sub(beforeBalance);
+            user.amount = user.amount.add(depositedAmount);
         }
         user.rewardDebt = user.amount.mul(pool.accSkyPerShare).div(1e18);
-        emit Deposit(_sender, _pid, _amount);
+        emit Deposit(_sender, _pid, depositedAmount);
     }
 
     // Withdraw LP tokens.
-    function withdraw(uint256 _pid, uint256 _amount) public {
+    function withdraw(uint256 _pid, uint256 _amount) nonReentrant public {
         address _sender = msg.sender;
         PoolInfo storage pool = poolInfo[_pid];
         UserInfo storage user = userInfo[_pid][_sender];
